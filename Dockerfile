@@ -1,14 +1,14 @@
-FROM node:18-alpine AS editor_build
-WORKDIR /app
-COPY ./blossom-editor .
-RUN npm ci
-RUN npm run build
+#FROM node:18-alpine AS editor_build
+#WORKDIR /app
+#COPY ./blossom-editor .
+#RUN npm ci
+#RUN npm run build
 
-FROM node:18-alpine AS web_build
-WORKDIR /app
-COPY ./blossom-web .
-RUN npm ci
-RUN npm run build
+#FROM node:18-alpine AS web_build
+#WORKDIR /app
+#COPY ./blossom-web .
+#RUN npm ci
+#RUN npm run build
 
 # 第一阶段：编译构建Java项目
 FROM maven:3.8.8-eclipse-temurin-8-alpine AS build
@@ -34,8 +34,8 @@ COPY --from=builder application/spring-boot-loader/ ./
 COPY --from=builder application/snapshot-dependencies/ ./
 COPY --from=builder application/application/ ./
 
-COPY --from=editor_build /app/out/renderer ./BOOT-INF/classes/static/editor/
-COPY --from=web_build /app/dist ./BOOT-INF/classes/static/blog/
+#COPY --from=editor_build /app/out/renderer ./BOOT-INF/classes/static/editor/
+#COPY --from=web_build /app/dist ./BOOT-INF/classes/static/blog/
 
 ENV JVM_OPTS="-Xmx256m -Xms256m" \
     BLOSSOM_WORK_DIR="/home/bl" \
