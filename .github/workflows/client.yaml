@@ -3,10 +3,7 @@ name: Build & Release Renderer on blossom-backend Change
 on:
   push:
     paths:
-      - 'blossom-backend/**'
-  pull_request:
-    paths:
-      - 'blossom-backend/**'
+      - 'blossom-editor/**'
   workflow_dispatch: # 支持手动触发
 
 jobs:
@@ -23,6 +20,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies and build
+        working-directory: blossom-editor
         run: |
           npm ci
           npm run build
