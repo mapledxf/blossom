@@ -26,9 +26,10 @@ jobs:
           npm run build
 
       - name: Zip renderer output
+        working-directory: blossom-editor
         run: |
-          mkdir -p release_artifacts
-          zip -r release_artifacts/client.zip app/out/renderer
+          mkdir -p ../release_artifacts && ls .
+          zip -r ../release_artifacts/client.zip out/renderer
 
       - name: Get latest release
         id: get_release
