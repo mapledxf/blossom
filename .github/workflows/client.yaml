@@ -1,0 +1,66 @@
+name: Build & Release Renderer on blossom-backend Change
+
+on:
+  push:
+    paths:
+      - 'blossom-backend/**'
+  pull_request:
+    paths:
+      - 'blossom-backend/**'
+  workflow_dispatch: # 支持手动触发
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Zip renderer output
+        run: |
+          mkdir -p release_artifacts
+          zip -r release_artifacts/client.zip app/out/renderer
+
+      - name: Get latest release
+        id: get_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            if (releases.length > 0) {
+              return releases[0].id;
+            }
+            // If no release exists, create a draft release
+            const { data: release } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `auto-build-${new Date().toISOString().split('T')[0]}`,
+              name: `Auto Build ${new Date().toISOString()}`,
+              draft: false,
+              prerelease: false
+            });
+            return release.id;
+
+      - name: Upload client.zip to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.result }}/assets?name=client.zip
+          asset_path: release_artifacts/client.zip
+          asset_name: client.zip
+          asset_content_type: application/zip
