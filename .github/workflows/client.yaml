@@ -1,0 +1,63 @@
+name: Build & Release on blossom-editor Change
+
+on:
+  push:
+    paths:
+      - 'blossom-editor/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies and build
+        working-directory: blossom-editor
+        run: |
+          npm ci
+          npm run build
+
+      - name: Zip renderer output
+        working-directory: blossom-editor
+        run: |
+          mkdir -p ../release_artifacts
+          zip -r ../release_artifacts/client.zip out/renderer
+
+      - name: Get latest release
+        id: get_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            let release;
+            if (releases.length > 0) {
+              release = releases[0];
+            } else {
+              const res = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: `auto-build-${new Date().toISOString().split('T')[0]}`,
+                name: `Client ${new Date().toISOString()}`,
+                draft: false,
+                prerelease: false
+              });
+              release = res.data;
+            }
+            core.setOutput('tag_name', release.tag_name);
+
+      - name: Upload client.zip to release
+        run: |
+          gh release upload "${{ steps.get_release.outputs.tag_name }}" release_artifacts/client.zip --repo ${{ github.repository }} --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
